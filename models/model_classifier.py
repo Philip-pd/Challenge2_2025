@@ -47,7 +47,7 @@ class AudioMLP(nn.Module):
 
         self.fc4 = nn.Linear(hidden3_size, 64)  # Extra hidden layer
         self.bn4 = nn.BatchNorm1d(64)
-        self.dropout4 = nn.Dropout(0.5)
+        self.dropout4 = nn.Dropout(0.15) #lower dropout on the last layer to make sure backprop doesn't cut out everything
 
         self.output = nn.Linear(64, output_size)
 

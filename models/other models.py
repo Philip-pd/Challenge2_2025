@@ -48,10 +48,10 @@ class AudioMLP(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # Residual blocks
-        self.layer1 = self._make_layer(64, 64, blocks=2)
-        self.layer2 = self._make_layer(64, 128, blocks=2, stride=2)
-        self.layer3 = self._make_layer(128, 256, blocks=2, stride=2)
-        #self.layer4 = self._make_layer(256, 512, blocks=2, stride=2)
+        self.layer1 = self._make_layer(64, 64, blocks=1)
+        self.layer2 = self._make_layer(64, 128, blocks=1, stride=2)
+        self.layer3 = self._make_layer(128, 256, blocks=1, stride=2)
+        self.layer4 = self._make_layer(256, 512, blocks=1, stride=2)
 
         # Compute output size
         # After 5 downsamplings: size // 2^5
@@ -85,7 +85,7 @@ class AudioMLP(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        #x = self.layer4(x)
+        x = self.layer4(x)
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
