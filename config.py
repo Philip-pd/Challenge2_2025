@@ -22,7 +22,7 @@ hop_length = 512
 model_constructor = "AudioMLP(n_steps=431,\
 n_mels=config.n_mels,\
 hidden1_size=512,\
-hidden2_size=128,\
+hidden2_size=256,\
 output_size=config.n_classes,\
 time_reduce=1)"
 
