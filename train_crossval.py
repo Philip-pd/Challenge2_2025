@@ -201,9 +201,8 @@ if __name__ == "__main__":
                                         momentum=0.9,
                                         weight_decay=config.weight_decay)
 
-            scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                        step_size=config.step_size,
-                                                        gamma=config.gamma)
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                                   T_max=config.epochs)
 
             # fit the model using only training and validation data, no testing data allowed here
             print()

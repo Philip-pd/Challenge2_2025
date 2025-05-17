@@ -3,63 +3,72 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class AudioMLP(nn.Module):
-    def __init__(self, n_steps, n_mels, output_size, time_reduce=1,
-                 hidden1_size=512, hidden2_size=256, hidden3_size=128):
+class BasicBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, p=0.2):
         super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout1 = nn.Dropout2d(p)
 
-        # 2D CNN feature extractor (Time x Mels → Feature Maps)
-        self.cnn = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # (n_steps/2, n_mels/2)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.dropout2 = nn.Dropout2d(p)
 
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # (n_steps/4, n_mels/4)
-
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),  # (n_steps/8, n_mels/8)
-        )
-
-        # Compute CNN output shape
-        dummy_input = torch.zeros(1, 1, n_steps, n_mels)
-        with torch.no_grad():
-            cnn_out = self.cnn(dummy_input)
-            flattened_size = cnn_out.view(1, -1).shape[1]
-
-        # MLP head
-        self.fc1 = nn.Linear(flattened_size, hidden1_size)
-        self.bn1 = nn.BatchNorm1d(hidden1_size)
-        self.dropout1 = nn.Dropout(0.3)
-
-        self.fc2 = nn.Linear(hidden1_size, hidden2_size)
-        self.bn2 = nn.BatchNorm1d(hidden2_size)
-        self.dropout2 = nn.Dropout(0.3)
-
-        self.fc3 = nn.Linear(hidden2_size, hidden3_size)
-        self.bn3 = nn.BatchNorm1d(hidden3_size)
-        self.dropout3 = nn.Dropout(0.3)
-
-        self.fc4 = nn.Linear(hidden3_size, 64)  # Extra hidden layer
-        self.bn4 = nn.BatchNorm1d(64)
-        self.dropout4 = nn.Dropout(0.15) #lower dropout on the last layer to make sure backprop doesn't cut out everything
-
-        self.output = nn.Linear(64, output_size)
+        self.shortcut = nn.Sequential()
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(out_channels)
+            )
 
     def forward(self, x):
-        # x: (batch_size, n_steps, n_mels) → (batch_size, 1, n_steps, n_mels)
-        if x.dim() == 3:
-            x = x.unsqueeze(1)
-        x = self.cnn(x)
-        x = x.view(x.size(0), -1)  # Flatten
-        x = self.dropout1(F.relu(self.bn1(self.fc1(x))))
-        x = self.dropout2(F.relu(self.bn2(self.fc2(x))))
-        x = self.dropout3(F.relu(self.bn3(self.fc3(x))))
-        x = self.dropout4(F.relu(self.bn4(self.fc4(x))))
-        x = self.output(x)
-        return x
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.dropout1(out)
+        out = self.relu(self.bn2(self.conv2(out)))
+        out = self.dropout2(out)
+        out += self.shortcut(x)
+        out = self.relu(out)
+        return out
+
+class AudioMLP(nn.Module):
+    def __init__(self, n_steps, n_mels, output_size, time_reduce=1,
+                 hidden1_size=256, hidden2_size=128, hidden3_size=64, num_classes=50, block_drop_p=0.2, head_drop_p=0.5):
+        super().__init__()
+        self.in_channels = 64
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.dropout0 = nn.Dropout2d(block_drop_p)
+
+        self.layer1 = self._make_layer(BasicBlock, 64, 2, stride=1, p=block_drop_p)
+        self.layer2 = self._make_layer(BasicBlock, 128, 2, stride=2, p=block_drop_p)
+        self.layer3 = self._make_layer(BasicBlock, 256, 2, stride=2, p=block_drop_p)
+        self.layer4 = self._make_layer(BasicBlock, 512, 2, stride=2, p=block_drop_p)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.flatten = nn.Flatten()
+        self.head_dropout = nn.Dropout(head_drop_p)
+        self.fc = nn.Linear(512, num_classes)
+
+    def _make_layer(self, block, out_channels, num_blocks, stride, p):
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for s in strides:
+            layers.append(block(self.in_channels, out_channels, s, p))
+            self.in_channels = out_channels
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        out = self.dropout0(self.relu(self.bn1(self.conv1(x))))
+        out = self.maxpool(out)
+        out = self.layer1(out)
+        out = self.layer2(out)
+        out = self.layer3(out)
+        out = self.layer4(out)
+        out = self.avgpool(out)
+        out = self.flatten(out)
+        out = self.head_dropout(out)
+        return self.fc(out)
+
