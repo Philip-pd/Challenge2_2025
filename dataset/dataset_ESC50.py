@@ -95,17 +95,16 @@ class ESC50(data.Dataset):
             # transforms can be applied on wave and spectral representation
             self.wave_transforms = transforms.Compose(
                 torch.Tensor,
-                #transforms.RandomScale(max_scale=1.25),
+                transforms.RandomScale(max_scale=1.15),
                 transforms.RandomPadding(out_len=out_len),
                 transforms.RandomCrop(out_len=out_len)
             )
 
             self.spec_transforms = transforms.Compose(
-                # to Tensor and prepend singleton dim
-                #lambda x: torch.Tensor(x).unsqueeze(0),
-                # lambda non-pickleable, problem on windows, replace with partial function
                 torch.Tensor,
                 partial(torch.unsqueeze, dim=0),
+                transforms.FrequencyMask(max_width=10, numbers=2),
+                transforms.TimeMask(max_width=20, numbers=2),
             )
 
         else:
