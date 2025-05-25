@@ -24,7 +24,7 @@ def scale(old_value, old_min, old_max, new_min, new_max):
 
 
 class RandomNoise:
-    def __init__(self, min_noise=0.0, max_noise=0.05): #0.002, 0.01
+    def __init__(self, min_noise=0.002, max_noise=0.01): #0.002, 0.01
         super(RandomNoise, self).__init__()
         
         self.min_noise = min_noise
@@ -173,8 +173,6 @@ class TimeMask():
 
     def __call__(self, wave):
         return self.addTimeMask(wave)
-
-
 
 
 
