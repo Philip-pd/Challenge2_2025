@@ -52,7 +52,7 @@ def download_progress(current, total, width=80):
 
 class ESC50(data.Dataset):
 
-    def __init__(self, root, test_folds=frozenset((1,)), subset="train", global_mean_std=(0.0, 0.0), download=False):
+    def __init__(self, root, test_folds=frozenset((1,)), subset="train", global_mean_std=(0.0, 1.0), download=False): #run with adjusted global mean
         audio = 'ESC-50-master/audio'
         root = os.path.normpath(root)
         audio = os.path.join(root, audio)
@@ -96,7 +96,7 @@ class ESC50(data.Dataset):
             self.wave_transforms = transforms.Compose(
                 torch.Tensor,
                 transforms.RandomScale(max_scale=1.15),
-                transforms.RandomNoise(min_noise=0.001, max_noise=0.01),
+                #transforms.RandomNoise(min_noise=0.001, max_noise=0.01),
                 transforms.RandomPadding(out_len=out_len),
                 transforms.RandomCrop(out_len=out_len)
             )
@@ -105,7 +105,7 @@ class ESC50(data.Dataset):
                 torch.Tensor,
                 partial(torch.unsqueeze, dim=0),
                 transforms.FrequencyMask(max_width=10, numbers=2),
-                transforms.TimeMask(max_width=20, numbers=2),
+                transforms.TimeMask(max_width=10, numbers=2),
             )
 
         else:
