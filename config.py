@@ -19,12 +19,7 @@ n_mels = 128
 hop_length = 512
 #n_mfcc = 42
 
-model_constructor = "AudioMLP(n_steps=431,\
-n_mels=config.n_mels,\
-hidden1_size=512,\
-hidden2_size=256,\
-output_size=config.n_classes,\
-time_reduce=1)"
+model_constructor = "AudioMLP(num_classes=config.n_classes, block_drop_p=config.block_drop_p, head_drop_p=config.head_drop_p)"
 
 # ###TRAINING
 # ratio to split off from training data
@@ -47,6 +42,8 @@ weight_decay = 1e-3
 warm_epochs = 10
 gamma = 0.8
 step_size = 5
+block_drop_p=0.2
+head_drop_p=0.3
 
 # ### TESTING
 # model checkpoints loaded for testing

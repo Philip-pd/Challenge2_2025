@@ -32,8 +32,7 @@ class BasicBlock(nn.Module):
         return out
 
 class AudioMLP(nn.Module):
-    def __init__(self, n_steps, n_mels, output_size, time_reduce=1,
-                 hidden1_size=256, hidden2_size=128, hidden3_size=64, num_classes=50, block_drop_p=0.2, head_drop_p=0.3):
+    def __init__(self, num_classes=50, block_drop_p=0.2, head_drop_p=0.3):
         super().__init__()
         self.in_channels = 64
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1, bias=False)
