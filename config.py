@@ -25,7 +25,7 @@ model_constructor = "AudioMLP(num_classes=config.n_classes, block_drop_p=config.
 # ratio to split off from training data
 val_size = .2  # could be changed
 device_id = 0
-batch_size = 32
+batch_size = 48
 # in Colab to avoid Warning
 num_workers = 2
 num_workers = 0
@@ -33,11 +33,11 @@ num_workers = 0
 # num_workers = 6#16
 persistent_workers = True
 persistent_workers = False
-epochs = 200
+epochs = 300
 #epochs = 1
 # early stopping after epochs with no improvement
 patience = 20
-lr = 3e-3
+lr = 5e-3
 weight_decay = 1e-3
 warm_epochs = 10
 gamma = 0.8
